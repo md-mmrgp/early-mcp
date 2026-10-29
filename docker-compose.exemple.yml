@@ -1,0 +1,31 @@
+# MODÈLE de déploiement (projet Compose SÉPARÉ de celui de n8n : ne jamais le nommer « root »).
+# Les valeurs entre ${...} sont fournies au déploiement, jamais écrites dans ce fichier.
+services:
+  early-mcp:
+    image: ${EARLY_MCP_IMAGE}            # image construite à part (voir README)
+    restart: always
+    environment:
+      - EARLY_API_KEY=${EARLY_API_KEY}
+      - EARLY_API_SECRET=${EARLY_API_SECRET}
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+      - MCP_PUBLIC_HOST=${MCP_PUBLIC_HOST}
+      # MCP_AUTORISER_ECRASEMENT=1 n'est volontairement PAS défini : l'outil ne peut pas écraser d'entrées.   # ex. mcp.example.com
+    # Pas de « ports: » : seul Traefik (réseau Docker) peut joindre le conteneur.
+    networks: [traefik_reseau]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=root_default
+      - traefik.http.routers.early-mcp.rule=Host(`${MCP_PUBLIC_HOST}`)
+      - traefik.http.routers.early-mcp.entrypoints=websecure
+      - traefik.http.routers.early-mcp.tls=true
+      - traefik.http.routers.early-mcp.tls.certresolver=mytlschallenge
+      - traefik.http.services.early-mcp.loadbalancer.server.port=8000
+    read_only: true                      # système de fichiers du conteneur en lecture seule
+    cap_drop: [ALL]                      # aucune capacité Linux spéciale
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m                      # n8n partage ce VPS de 4 Go : on borne notre part
+
+networks:
+  traefik_reseau:
+    external: true
+    name: root_default                   # le réseau où Traefik (projet « root ») écoute

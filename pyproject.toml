@@ -1,0 +1,30 @@
+[project]
+name = "serveur-mcp-early"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastmcp>=4.1.4",
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.4",
+]
+
+[project.scripts]
+serveur-early = "serveur_early.serveur:mcp.run"
+serveur-early-http = "serveur_early.serveur:lancer_http"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/serveur_early"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
