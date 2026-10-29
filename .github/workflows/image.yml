@@ -5,6 +5,7 @@ name: image
 on:
   push:
     branches: [main]
+    paths-ignore: ['**.md']   # pas de reconstruction pour un simple changement de documentation
   workflow_dispatch:   # permet aussi de le lancer à la main depuis l'onglet Actions
 
 permissions:

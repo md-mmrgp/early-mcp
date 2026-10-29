@@ -3,15 +3,18 @@
 Serveur MCP pour l'API d'Early (ex-Timeular, suivi du temps), écrit avec FastMCP 4.x.
 On s'inspire des serveurs existants pour comprendre, mais on n'en copie pas le code.
 
-## Où on en est
-- [x] Projet `uv`, FastMCP 4.1.4, serveur d'exercice (`exercice.py`)
-- [x] Client Early v4 (`early_client.py`) : connexion clé/secret -> jeton, renouvelé si expiré
-- [x] 5 outils en **lecture seule** : `lister_activites`, `lister_tags_clients`, `suivi_en_cours`, `temps_de_la_semaine`, `trous_a_remplir`
-- [x] 1 outil d'**écriture** : `creer_entree_temps` (activité et clients tags par **nom**, mode `simuler`, refus si chevauchement)
-- [x] Mode HTTP protégé par jeton (`serveur-early-http`), `Dockerfile`, modèle Compose
-- [x] 33 tests avec un faux Early (aucun réseau, aucune clé)
-- [ ] Essai réel en local avec une vraie clé (dans un `.env` local)
-- [ ] Construction de l'image Docker et déploiement sur le VPS (accord explicite requis)
+## Où on en est : projet terminé
+- [x] Serveur d'exercice (`exercice.py`), puis client Early v4 (`early_client.py`)
+- [x] 5 outils en **lecture seule** : `lister_activites`, `lister_tags_clients`, `suivi_en_cours`, `temps_de_la_semaine` (par activité **et par tag**), `trous_a_remplir`
+- [x] 1 outil d'**écriture** : `creer_entree_temps` (activité et clients par **nom**, mode `simuler`, refus si chevauchement)
+- [x] Mode HTTP protégé par jeton (`serveur-early-http`), `Dockerfile`, image publiée par GitHub Actions
+- [x] 40 tests avec un faux Early (aucun réseau, aucune clé), audit de sécurité
+- [x] Validé en réel avec une vraie clé, puis déployé derrière un reverse proxy en HTTPS
+
+## Pistes d'évolution
+- Plusieurs utilisateurs : un serveur par personne, ou un serveur partagé avec OAuth et des clés Early rangées chiffrées par utilisateur.
+- Limitation de débit côté reverse proxy ; épingler les actions GitHub par empreinte.
+- Écrire à d'autres endroits d'Early (démarrer/arrêter le suivi) seulement si le besoin apparaît, avec les mêmes garde-fous.
 
 ## Architecture : qui fait quoi
 | Fichier | Rôle |
@@ -55,7 +58,7 @@ créés sur product.early.app (le secret n'est affiché qu'une fois). Jamais dan
 Le VPS exécute déjà un projet Compose `root` (n8n + Traefik). Notre serveur sera un projet **séparé** (`early-mcp`),
 derrière Traefik, sur un sous-domaine dédié (qui doit pointer vers le VPS).
 Voir `docker-compose.exemple.yml`. Les secrets (clé et secret Early, jeton) sont passés en variables d'environnement
-au déploiement, jamais dans le dépôt. Reste à décider comment l'image Docker est construite (dépôt privé).
+au déploiement, jamais dans le dépôt. L'image est construite par GitHub Actions (`.github/workflows/image.yml`) et publiée sur `ghcr.io`.
 
 ## Sécurité (audit avant publication)
 Contrôles faits : recherche de secrets (aucun), `pip-audit` (aucune vulnérabilité connue), `bandit`, relecture du code d'authentification, du Dockerfile, du Compose et du workflow.
