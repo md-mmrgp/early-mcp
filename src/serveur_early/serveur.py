@@ -365,7 +365,9 @@ async def renommer_tag(tag: str, nouveau_nom: str, simuler: bool = False) -> dic
     autres = resolution.homonymes(nouveau_nom, existants, "label", ignorer_id=cible["id"])
     if autres:
         raise ToolError("Ce nom ferait doublon avec : " + ", ".join(repr(t["label"]) for t in autres)
-                        + ". Pour unir deux tags, il faut d'abord re-tagger leurs entrées (pas encore possible ici).")
+                        + ". Si le tag actuel n'est plus utilisé, supprimez-le directement dans Early (aucun outil "
+                        "de suppression ici). S'il porte encore des entrées, il faut d'abord les re-tagger vers "
+                        "l'autre tag (pas encore possible ici) : ne le supprimez pas avant.")
     if simuler:
         return {"simulation": True, "serait_renomme": {"de": cible["label"], "en": nouveau_nom}}
     await _appel(client.renommer_tag(cible["id"], nouveau_nom))

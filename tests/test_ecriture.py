@@ -157,6 +157,9 @@ async def test_renommer_tag_simulation(faux):
 
 async def test_renommer_tag_refuse_un_doublon(faux):
     await appel(faux, "renommer_tag", {"tag": "Martin", "nouveau_nom": "dupont"}, attendu_erreur="ferait doublon")
+    # le message explique quoi faire quand l'ancien tag est inutilisé, et avertit s'il porte encore des entrées
+    await appel(faux, "renommer_tag", {"tag": "Martin", "nouveau_nom": "dupont"}, attendu_erreur="supprimez-le directement dans Early")
+    await appel(faux, "renommer_tag", {"tag": "Martin", "nouveau_nom": "dupont"}, attendu_erreur="ne le supprimez pas avant")
     assert faux.ecritures == []
 
 
