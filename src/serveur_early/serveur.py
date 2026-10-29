@@ -91,7 +91,11 @@ async def suivi_en_cours() -> dict:
 
 @mcp.tool(annotations=LECTURE_SEULE)
 async def temps_de_la_semaine(decalage_semaines: int = 0) -> dict:
-    """Heures saisies par activité sur une semaine (lundi à dimanche).
+    """Heures saisies sur une semaine (lundi à dimanche), par activité ET par tag (client).
+
+    `par_tag` donne, pour chaque tag, ses heures et le détail par activité. Une entrée portant
+    plusieurs tags est comptée pour chacun : la somme des tags peut dépasser `total_heures`.
+    `sans_tag` regroupe les heures saisies sans aucun tag (souvent un oubli à corriger).
 
     Args:
         decalage_semaines: 0 = cette semaine, -1 = la semaine dernière, etc.
@@ -102,8 +106,10 @@ async def temps_de_la_semaine(decalage_semaines: int = 0) -> dict:
         analyse.vers_early(datetime.combine(lundi, time(0, 0))),
         analyse.vers_early(datetime.combine(dimanche, time(23, 59, 59)))))
     lignes = analyse.heures_par_activite(entrees)
+    par_tag, sans_tag = analyse.heures_par_tag(entrees)
     return {"du": lundi.isoformat(), "au": dimanche.isoformat(),
-            "total_heures": round(sum(l["heures"] for l in lignes), 2), "par_activite": lignes}
+            "total_heures": round(sum(l["heures"] for l in lignes), 2),
+            "par_activite": lignes, "par_tag": par_tag, "sans_tag": sans_tag}
 
 
 @mcp.tool(annotations=LECTURE_SEULE)

@@ -63,3 +63,30 @@ def trouver_trous(entrees: list[dict], jour: date, debut_journee: time, fin_jour
 def chevauchements(entrees: list[dict], debut: datetime, fin: datetime) -> list[dict]:
     """Entrées existantes qui touchent [debut, fin[ : Early les découperait ou les supprimerait."""
     return [e for e in entrees if _intervalle(e)[0] < fin and _intervalle(e)[1] > debut]
+
+
+def heures_par_tag(entrees: list[dict]) -> tuple[list[dict], dict]:
+    """Heures par tag (ex. client), avec le détail par activité ; plus les heures SANS tag.
+
+    Une entrée qui porte plusieurs tags est comptée en entier pour chacun d'eux.
+    """
+    par_tag: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    sans_tag: dict[str, float] = defaultdict(float)
+    for e in entrees:
+        debut, fin = _intervalle(e)
+        secondes = (fin - debut).total_seconds()
+        activite = e["activity"]["name"]
+        tags = (e.get("note") or {}).get("tags") or []  # la note peut être absente
+        if not tags:
+            sans_tag[activite] += secondes
+        for t in tags:
+            par_tag[t["label"]][activite] += secondes
+
+    def detail(secondes_par_activite):
+        lignes = [{"activite": a, "heures": round(s / 3600, 2)} for a, s in secondes_par_activite.items()]
+        return sorted(lignes, key=lambda x: x["heures"], reverse=True)
+
+    lignes = [{"tag": tag, "heures": round(sum(acts.values()) / 3600, 2), "par_activite": detail(acts)}
+              for tag, acts in par_tag.items()]
+    lignes.sort(key=lambda x: x["heures"], reverse=True)
+    return lignes, {"heures": round(sum(sans_tag.values()) / 3600, 2), "par_activite": detail(sans_tag)}

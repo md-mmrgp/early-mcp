@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from serveur_early.analyse import heures_par_activite, lundi_de_la_semaine, trouver_trous
+from serveur_early.analyse import heures_par_activite, heures_par_tag, lundi_de_la_semaine, trouver_trous
 
 
 def entree(nom, debut, fin):
@@ -43,3 +43,34 @@ def test_petit_trou_ignore():
     es = [entree("A", "2026-01-05T09:00:00.000", "2026-01-05T10:00:00.000"),
           entree("B", "2026-01-05T10:10:00.000", "2026-01-05T18:00:00.000")]
     assert trouver_trous(es, date(2026, 1, 5), time(9), time(18), 15) == []
+
+
+def avec_tags(nom, debut, fin, *tags):
+    e = entree(nom, debut, fin)
+    e["note"] = {"text": "x", "tags": [{"id": i, "label": t} for i, t in enumerate(tags, 1)], "mentions": []}
+    return e
+
+
+def test_heures_par_tag_et_detail_par_activite():
+    es = [avec_tags("Conseil", "2026-01-05T09:00:00.000", "2026-01-05T11:00:00.000", "Dupont"),
+          avec_tags("Admin", "2026-01-05T11:00:00.000", "2026-01-05T11:30:00.000", "Dupont"),
+          avec_tags("Conseil", "2026-01-05T14:00:00.000", "2026-01-05T15:00:00.000", "Martin")]
+    par_tag, sans_tag = heures_par_tag(es)
+    assert par_tag == [
+        {"tag": "Dupont", "heures": 2.5, "par_activite": [{"activite": "Conseil", "heures": 2.0},
+                                                          {"activite": "Admin", "heures": 0.5}]},
+        {"tag": "Martin", "heures": 1.0, "par_activite": [{"activite": "Conseil", "heures": 1.0}]}]
+    assert sans_tag == {"heures": 0.0, "par_activite": []}
+
+
+def test_entree_a_plusieurs_tags_comptee_pour_chacun():
+    par_tag, _ = heures_par_tag([avec_tags("Conseil", "2026-01-05T09:00:00.000", "2026-01-05T10:00:00.000",
+                                           "Dupont", "audit")])
+    assert {t["tag"]: t["heures"] for t in par_tag} == {"Dupont": 1.0, "audit": 1.0}
+
+
+def test_sans_tag_note_absente_ou_vide():
+    sans_note = entree("Admin", "2026-01-05T09:00:00.000", "2026-01-05T09:30:00.000")           # pas de clé note
+    note_nulle = {**entree("Admin", "2026-01-05T10:00:00.000", "2026-01-05T10:30:00.000"), "note": None}
+    par_tag, sans_tag = heures_par_tag([sans_note, note_nulle])
+    assert par_tag == [] and sans_tag == {"heures": 1.0, "par_activite": [{"activite": "Admin", "heures": 1.0}]}

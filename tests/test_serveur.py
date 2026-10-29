@@ -15,7 +15,8 @@ ACTIVITES = {"activities": [{"id": "1", "name": "Conseil", "folderId": "9"}],
              "archivedActivities": [{"id": "2", "name": "Ancien", "folderId": "9"}]}
 ENTREES = {"timeEntries": [
     {"id": "1", "activity": {"id": "1", "name": "Conseil"},
-     "duration": {"startedAt": "2026-01-05T09:00:00.000", "stoppedAt": "2026-01-05T12:00:00.000"}}]}
+     "duration": {"startedAt": "2026-01-05T09:00:00.000", "stoppedAt": "2026-01-05T12:00:00.000"},
+     "note": {"text": "x", "tags": [{"id": 7, "label": "Dupont"}], "mentions": []}}]}
 
 
 TAGS = {"tags": [{"id": 7, "label": "Dupont"}, {"id": 8, "label": "Martin"}], "mentions": []}
@@ -200,3 +201,11 @@ def test_http_refuse_de_demarrer_sans_hote_public(monkeypatch):
     monkeypatch.setattr(serveur.mcp, "auth", object())  # simule « jeton présent »
     with pytest.raises(SystemExit, match="MCP_PUBLIC_HOST"):
         serveur.lancer_http()
+
+
+async def test_temps_de_la_semaine_remonte_les_tags(client, monkeypatch):
+    monkeypatch.setattr(serveur, "_aujourdhui", lambda: __import__("datetime").date(2026, 1, 7))
+    res = (await client.call_tool("temps_de_la_semaine")).data
+    assert res["du"] == "2026-01-05" and res["total_heures"] == 3.0
+    assert res["par_tag"] == [{"tag": "Dupont", "heures": 3.0, "par_activite": [{"activite": "Conseil", "heures": 3.0}]}]
+    assert res["sans_tag"]["heures"] == 0.0
