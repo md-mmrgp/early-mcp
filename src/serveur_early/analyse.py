@@ -24,6 +24,11 @@ def _intervalle(entree: dict) -> tuple[datetime, datetime]:
     return datetime.fromisoformat(d["startedAt"]), datetime.fromisoformat(d["stoppedAt"])
 
 
+def intervalle(entree: dict) -> tuple[datetime, datetime]:
+    """(début, fin) d'une entrée Early."""
+    return _intervalle(entree)
+
+
 def heures_par_activite(entrees: list[dict]) -> list[dict]:
     """Total d'heures par activité, de la plus grosse à la plus petite."""
     secondes: dict[str, float] = defaultdict(float)

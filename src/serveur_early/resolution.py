@@ -32,3 +32,14 @@ def trouver(nom: str, candidats: list[dict], cle_nom: str, genre: str) -> dict:
     suggestions = [c[cle_nom] for c in candidats if normaliser(c[cle_nom]) in proches]
     conseil = f" Vouliez-vous dire : {', '.join(map(repr, suggestions))} ?" if suggestions else ""
     raise ResolutionError(f"Aucun {genre} nommé {nom!r}.{conseil}")
+
+
+def compacter(texte: str) -> str:
+    """Forme « squelette » pour repérer les quasi-doublons : 'Nomad RP', 'nomad-rp' et 'nomadrp' donnent la même."""
+    return "".join(c for c in normaliser(texte) if c.isalnum())
+
+
+def homonymes(nom: str, candidats: list[dict], cle_nom: str, ignorer_id=None) -> list[dict]:
+    """Éléments existants dont le nom est identique ou quasi identique (casse, accents, espaces, tirets)."""
+    cible = compacter(nom)
+    return [c for c in candidats if c["id"] != ignorer_id and compacter(c[cle_nom]) == cible]

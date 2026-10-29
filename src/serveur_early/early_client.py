@@ -6,6 +6,7 @@ seule, et la changer sans toucher aux outils.
 """
 
 import os
+import uuid
 
 import httpx
 
@@ -14,6 +15,14 @@ BASE_URL = "https://api.early.app/api/v4"
 
 class EarlyError(Exception):
     """Erreur lisible venant d'Early (réseau, droits, ressource introuvable)."""
+
+
+def _id_numerique(valeur) -> str:
+    """Un identifiant inséré dans une adresse ne doit contenir que des chiffres (pas de / ? .. etc.)."""
+    texte = str(valeur)
+    if not texte.isascii() or not texte.isdigit() or len(texte) > 12:
+        raise EarlyError(f"Identifiant invalide : {texte[:20]!r} (chiffres uniquement).")
+    return texte
 
 
 class EarlyClient:
@@ -84,7 +93,24 @@ class EarlyClient:
         """Entrées de temps entre deux dates au format 2026-01-01T00:00:00.000"""
         return (await self._json("GET", f"/time-entries/{debut}/{fin}"))["timeEntries"]
 
+    async def dossiers(self) -> list[dict]:
+        return (await self._json("GET", "/folders"))["folders"]
+
+    async def entree(self, entree_id: str) -> dict:
+        """Une entrée par son identifiant (déjà validé : chiffres uniquement)."""
+        return await self._json("GET", f"/time-entries/{_id_numerique(entree_id)}")
+
     # --- Écriture --------------------------------------------------------
+
+    async def creer_tag(self, label: str, dossier_id: str) -> dict:
+        corps = {"key": str(uuid.uuid4()), "label": label, "scope": "timeular", "folderId": dossier_id}
+        return await self._json("POST", "/tags", json=corps)
+
+    async def renommer_tag(self, tag_id: int, label: str) -> dict:
+        return await self._json("PATCH", f"/tags/{_id_numerique(tag_id)}", json={"label": label})
+
+    async def modifier_entree(self, entree_id: str, corps: dict) -> dict:
+        return await self._json("PATCH", f"/time-entries/{_id_numerique(entree_id)}", json=corps)
 
     async def creer_entree(self, activite_id: str, debut: str, fin: str, note: str | None) -> dict:
         corps = {"activityId": activite_id, "startedAt": debut, "stoppedAt": fin}

@@ -6,15 +6,17 @@ On s'inspire des serveurs existants pour comprendre, mais on n'en copie pas le c
 ## Où on en est : projet terminé
 - [x] Serveur d'exercice (`exercice.py`), puis client Early v4 (`early_client.py`)
 - [x] 5 outils en **lecture seule** : `lister_activites`, `lister_tags_clients`, `suivi_en_cours`, `temps_de_la_semaine` (par activité **et par tag**), `trous_a_remplir`
-- [x] 1 outil d'**écriture** : `creer_entree_temps` (activité et clients par **nom**, mode `simuler`, refus si chevauchement)
+- [x] Outils d'**écriture** : `creer_entree_temps`, `modifier_entree_temps` (avant/après, mentions conservées), `creer_tag` et `renommer_tag` (refus des quasi-doublons) ; noms plutôt qu'identifiants, mode `simuler`, refus si chevauchement. Aucun outil de suppression.
+- [x] Lecture des entrées avec leur identifiant : `lister_entrees`
 - [x] Mode HTTP protégé par jeton (`serveur-early-http`), `Dockerfile`, image publiée par GitHub Actions
-- [x] 40 tests avec un faux Early (aucun réseau, aucune clé), audit de sécurité
+- [x] 88 tests avec un faux Early (aucun réseau, aucune clé), audit de sécurité
 - [x] Validé en réel avec une vraie clé, puis déployé derrière un reverse proxy en HTTPS
 
 ## Pistes d'évolution
 - Plusieurs utilisateurs : un serveur par personne, ou un serveur partagé avec OAuth et des clés Early rangées chiffrées par utilisateur.
 - Limitation de débit côté reverse proxy ; épingler les actions GitHub par empreinte.
-- Écrire à d'autres endroits d'Early (démarrer/arrêter le suivi) seulement si le besoin apparaît, avec les mêmes garde-fous.
+- Fusionner deux tags : pas d'endpoint dédié dans Early. Il faudrait re-tagger les entrées une à une (avec simulation, plafond et journal des changements) avant de supprimer l'ancien tag, car supprimer un tag le retire des entrées.
+- Démarrer/arrêter le suivi, supprimer une entrée : seulement si le besoin apparaît, avec des garde-fous renforcés.
 
 ## Architecture : qui fait quoi
 | Fichier | Rôle |
@@ -52,7 +54,9 @@ créés sur product.early.app (le secret n'est affiché qu'une fois). Jamais dan
 - Un serveur MCP exposé sur Internet **doit** être authentifié : `auth=` dans `FastMCP(...)`. Notre `JetonUnique` compare avec `hmac.compare_digest` (temps constant). Le mode HTTP refuse de démarrer sans jeton.
 - `host_origin_protection` + `allowed_hosts` : le serveur refuse (421) une requête dont le `Host` n'est pas le sien.
 - Outil d'écriture : valider **avant** d'écrire (noms, durée, chevauchement), proposer un mode `simuler`, et annoter `destructiveHint` pour que le client demande confirmation.
-- Early référence les tags dans la note par identifiant : `<{{|t|ID|}}>`. Le serveur construit ce texte ; le LLM ne manipule jamais d'identifiants.
+- Early référence les tags dans la note par identifiant : `<{{|t|ID|}}>`. Le serveur construit ce texte ; le LLM ne manipule jamais d'identifiants. En modification, les mentions déjà présentes sont conservées.
+- Tout identifiant inséré dans une adresse envoyée à Early (ici l'identifiant d'une entrée) est validé : chiffres uniquement, sinon un texte piégé pourrait viser un autre endpoint.
+- **Tester ses tests** : casser volontairement un garde-fou (mutation) et vérifier qu'un test échoue. Une première tentative a échoué sans qu'on s'en aperçoive parce que la modification n'avait pas été appliquée : toujours vérifier que le test rouge l'est pour la bonne raison.
 
 ## Déploiement (sur le VPS Hostinger, à côté de n8n)
 Le VPS exécute déjà un projet Compose `root` (n8n + Traefik). Notre serveur sera un projet **séparé** (`early-mcp`),

@@ -57,12 +57,15 @@ async def client(monkeypatch):
         yield c
 
 
-async def test_seul_creer_entree_temps_ecrit(client):
+async def test_outils_exposes_et_seuls_certains_ecrivent(client):
     outils = {t.name: t for t in await client.list_tools()}
-    assert set(outils) == {"lister_activites", "lister_tags_clients", "suivi_en_cours",
-                           "temps_de_la_semaine", "trous_a_remplir", "creer_entree_temps"}
+    assert set(outils) == {"lister_activites", "lister_tags_clients", "suivi_en_cours", "temps_de_la_semaine",
+                           "trous_a_remplir", "lister_entrees", "creer_entree_temps", "creer_tag",
+                           "renommer_tag", "modifier_entree_temps"}
     ecrivains = {n for n, t in outils.items() if not t.annotations.read_only_hint}
-    assert ecrivains == {"creer_entree_temps"}
+    assert ecrivains == {"creer_entree_temps", "creer_tag", "renommer_tag", "modifier_entree_temps"}
+    # aucun outil de suppression n'existe
+    assert not any("supprim" in n or "delete" in n for n in outils)
 
 
 async def test_lister_activites(client):
